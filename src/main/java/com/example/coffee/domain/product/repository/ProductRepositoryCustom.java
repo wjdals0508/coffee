@@ -11,10 +11,13 @@ public interface ProductRepositoryCustom {
 
     Page<Product> findProducts(
             String category,
-            ProductStatus status,
+            ProductStatus excludedStatus,
             Pageable pageable
     );
 
-
-
+    Page<Product> searchProducts(
+            String keyword,
+            ProductStatus excludedStatus,
+            Pageable pageable
+    );
 }
