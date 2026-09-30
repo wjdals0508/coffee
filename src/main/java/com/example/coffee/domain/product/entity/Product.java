@@ -66,4 +66,13 @@ public class Product {
             this.status = ProductStatus.ON_SALE;
         }
     }
+
+    public void validatePurchasable(int quantity) {
+        if (this.status != ProductStatus.ON_SALE) {
+            throw new BusinessException(ErrorCode.PRODUCT_NOT_ON_SALE);
+        }
+        if (this.stockQuantity < quantity) {
+            throw new BusinessException(ErrorCode.INSUFFICIENT_STOCK);
+        }
+    }
 }
