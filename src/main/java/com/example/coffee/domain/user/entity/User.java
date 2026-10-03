@@ -26,10 +26,15 @@ public class User extends BaseTimeEntity {
     @Column(nullable = false, length = 50)
     private String name;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private Grade grade;
+
     @Builder
     private User(String email, String password, String name, String phone) {
         this.email = email;
         this.password = password;
         this.name = name;
+        this.grade = Grade.NORMAL;
     }
 }
