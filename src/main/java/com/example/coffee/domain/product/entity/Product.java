@@ -30,8 +30,8 @@ public class Product {
     @Column(name = "description", nullable = false, columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "stock_quantity", nullable = false)
-    private int stockQuantity;
+    @Column(name = "stock", nullable = false)
+    private int stock;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
@@ -46,13 +46,13 @@ public class Product {
             throw new IllegalStateException("판매 중인 상품만 주문할 수 있습니다.");
         }
 
-        if (this.stockQuantity < quantity) {
+        if (this.stock < quantity) {
             throw new IllegalStateException("상품 재고가 부족합니다.");
         }
 
-        this.stockQuantity -= quantity;
+        this.stock -= quantity;
 
-        if (this.stockQuantity == 0) {this.status = ProductStatus.SOLD_OUT;}
+        if (this.stock == 0) {this.status = ProductStatus.SOLD_OUT;}
     }
 
     public void restoreStock(int quantity) {
@@ -60,7 +60,7 @@ public class Product {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "복구 수량은 1 이상이어야 합니다.");
         }
 
-        this.stockQuantity = Math.addExact(this.stockQuantity, quantity);
+        this.stock = Math.addExact(this.stock, quantity);
 
         if (this.status == ProductStatus.SOLD_OUT) {
             this.status = ProductStatus.ON_SALE;
@@ -71,7 +71,7 @@ public class Product {
         if (this.status != ProductStatus.ON_SALE) {
             throw new BusinessException(ErrorCode.PRODUCT_NOT_ON_SALE);
         }
-        if (this.stockQuantity < quantity) {
+        if (this.stock < quantity) {
             throw new BusinessException(ErrorCode.INSUFFICIENT_STOCK);
         }
     }

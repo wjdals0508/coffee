@@ -1,4 +1,4 @@
-package com.example.coffee.domain.product.dto;
+package com.example.coffee.domain.product.dto.response;
 
 import com.example.coffee.domain.product.entity.Product;
 import com.example.coffee.domain.product.entity.ProductStatus;

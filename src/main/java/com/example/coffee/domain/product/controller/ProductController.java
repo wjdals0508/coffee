@@ -1,6 +1,6 @@
 package com.example.coffee.domain.product.controller;
 
-import com.example.coffee.domain.product.dto.ProductResponse;
+import com.example.coffee.domain.product.dto.response.ProductResponse;
 import com.example.coffee.domain.product.dto.ProductSort;
 import com.example.coffee.domain.product.service.ProductService;
 import com.example.coffee.global.response.ApiResponse;

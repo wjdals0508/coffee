@@ -1,6 +1,6 @@
 package com.example.coffee.domain.product.service;
 
-import com.example.coffee.domain.product.dto.ProductResponse;
+import com.example.coffee.domain.product.dto.response.ProductResponse;
 import com.example.coffee.domain.product.dto.ProductSort;
 import com.example.coffee.domain.product.entity.ProductStatus;
 import com.example.coffee.domain.product.repository.ProductRepository;
