@@ -9,12 +9,12 @@ import java.util.Optional;
 
 public interface CartItemRepository extends JpaRepository<CartItem, Long> {
 
-    Optional<CartItem> findByUser_IdAndProduct_Id(Long userId, Long productId);
+    Optional<CartItem> findByUserIdAndProductId(Long userId, Long productId);
 
     @EntityGraph(attributePaths = {"product", "product.category"})
-    List<CartItem> findAllByUser_IdOrderByCreatedAtAsc(Long memberId);
+    List<CartItem> findAllByUserIdOrderByCreatedAtAsc(Long memberId);
 
-    Optional<CartItem> findByIdAndUser_Id(Long id, Long memberId);
+    Optional<CartItem> findByIdAndUserId(Long id, Long memberId);
 
-    List<CartItem> findAllByUser_IdAndIdIn(Long memberId, List<Long> cartItemIds);
+    List<CartItem> findAllByUserIdAndIdIn(Long memberId, List<Long> cartItemIds);
 }

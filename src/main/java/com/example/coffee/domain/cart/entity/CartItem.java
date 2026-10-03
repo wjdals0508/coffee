@@ -1,7 +1,7 @@
 package com.example.coffee.domain.cart.entity;
 
 import com.example.coffee.domain.product.entity.Product;
-import com.example.coffee.domain.user.entiry.User;
+import com.example.coffee.domain.user.entity.User;
 import com.example.coffee.global.entity.BaseTimeEntity;
 import com.example.coffee.global.error.BusinessException;
 import com.example.coffee.global.error.ErrorCode;
@@ -10,7 +10,14 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-
+@Entity
+@Table(
+        name = "cart_items",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_cart_items_user_product",
+                columnNames = {"user_id", "product_id"}
+        )
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class CartItem extends BaseTimeEntity {
