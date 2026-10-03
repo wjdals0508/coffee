@@ -1,6 +1,6 @@
 package com.example.coffee.domain.user.dto.response;
 
-import com.example.coffee.domain.user.entiry.User;
+import com.example.coffee.domain.user.entity.User;
 
 public record GetUserResponse(
         Long id,
