@@ -19,10 +19,10 @@ public class UserController {
 
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<GetUserResponse>> getMyInfo(
-            @AuthenticationPrincipal Long memberId
+            @AuthenticationPrincipal Long userId
     ) {
         return ResponseEntity.ok(
-                ApiResponse.ok(userService.getMe(memberId))
+                ApiResponse.ok(userService.getMe(userId))
         );
     }
 }

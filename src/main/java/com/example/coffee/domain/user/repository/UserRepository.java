@@ -1,6 +1,6 @@
 package com.example.coffee.domain.user.repository;
 
-import com.example.coffee.domain.user.entiry.User;
+import com.example.coffee.domain.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
