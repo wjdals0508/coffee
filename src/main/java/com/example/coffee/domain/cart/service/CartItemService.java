@@ -31,7 +31,7 @@ public class CartItemService {
     public CartItemResponse addItem(Long userId, CartItemAddRequest request) {
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         Product product = productRepository.findById(request.productId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
