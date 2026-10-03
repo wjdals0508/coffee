@@ -1,51 +1,48 @@
 package com.example.coffee.domain.payment.service;
 
-import com.example.coffee.domain.payment.entity.FailReason;
+import com.example.coffee.domain.payment.dto.response.PaymentResponse;
 import com.example.coffee.domain.payment.entity.Payment;
+import com.example.coffee.domain.payment.gateway.PaymentGateway;
 import com.example.coffee.domain.payment.repository.PaymentRepository;
-import com.example.coffee.global.error.BusinessException;
-import com.example.coffee.global.error.ErrorCode;
+import com.example.coffee.domain.point.dto.response.PointChargeResponse;
+import com.example.coffee.domain.point.service.PointService;
+import com.example.coffee.domain.user.entity.User;
+import com.example.coffee.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class PaymentService {
 
     private final PaymentRepository paymentRepository;
+    private final UserRepository userRepository;
+    private final PaymentGateway paymentGateway;
+    private final PointService pointService;
 
-    // 결제 생성
     @Transactional
-    public Payment createPayment(Long amount) {
-        Payment payment = Payment.builder()
-                .amount(amount)
-                .build();
-        return paymentRepository.save(payment);
+    public PointChargeResponse chargePoint(Long userId, long amount) {
+        User user = userRepository.getReferenceById(userId);
+
+        Payment payment = paymentRepository.save(
+                Payment.builder()
+                        .user(user)
+                        .amount(amount)
+                        .build()
+        );
+
+        paymentGateway.approve(payment.getPortonePaymentId(), amount);
+        payment.complete();   // PENDING → COMPLETED, paidAt 기록
+
+        return pointService.charge(userId, amount);
     }
 
-    // 결제 완료
-    @Transactional
-    public void completePayment(Payment payment) {
-        payment.complete();
-    }
-
-    // 결제 실패 (상세 사유 지정)
-    @Transactional
-    public void failPayment(Payment payment, FailReason reason) {
-        payment.fail(reason);
-    }
-
-    // 결제 상태 변경(Canceled)
-    @Transactional
-    public void cancelPayment(Payment payment) {
-        payment.cancel();
-    }
-
-    // 결제 조회
-    public Payment findByIdWithOrder(Long userId) {
-        return paymentRepository.findPaymentByUserId(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
+    @Transactional(readOnly = true)
+    public Page<PaymentResponse> getMyPayments(Long memberId, Pageable pageable) {
+        return paymentRepository.findPaymentsByUserId(memberId, pageable)
+                .map(PaymentResponse::from);
     }
 }

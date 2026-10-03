@@ -48,10 +48,10 @@ public class Payment extends BaseTimeEntity {
 
     @Builder
     private Payment(User user, Long amount) {
-        // 음수 방지
-        if (amount < 0) {
+        if (user == null || amount < 0) {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
         }
+
         this.user = user;
         this.portonePaymentId = generatePortonePaymentId();
         this.amount = amount;
@@ -74,12 +74,6 @@ public class Payment extends BaseTimeEntity {
 
     public void cancel() {
         changeStatus(PaymentStatus.CANCELLED);
-    }
-
-    public void validateRefundable() {
-        if (this.status != PaymentStatus.COMPLETED && this.status != PaymentStatus.PARTIAL_REFUND) {
-            throw new BusinessException(ErrorCode.INVALID_REFUND_STATUS);
-        }
     }
 
     public void fullRefund() {
