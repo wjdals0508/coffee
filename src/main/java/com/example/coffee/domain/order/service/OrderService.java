@@ -1,0 +1,106 @@
+package com.example.coffee.domain.order.service;
+
+import com.example.coffee.domain.order.dto.request.OrderCreateRequest;
+import com.example.coffee.domain.order.dto.request.OrderItemRequest;
+import com.example.coffee.domain.order.dto.response.OrderCreateResponse;
+import com.example.coffee.domain.order.dto.response.OrderResponse;
+import com.example.coffee.domain.order.entity.Order;
+import com.example.coffee.domain.order.entity.OrderItem;
+import com.example.coffee.domain.order.repository.OrderItemRepository;
+import com.example.coffee.domain.order.repository.OrderRepository;
+import com.example.coffee.domain.point.service.PointService;
+import com.example.coffee.domain.product.entity.Product;
+import com.example.coffee.domain.product.repository.ProductRepository;
+import com.example.coffee.domain.user.entity.User;
+import com.example.coffee.domain.user.repository.UserRepository;
+import com.example.coffee.global.error.BusinessException;
+import com.example.coffee.global.error.ErrorCode;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class OrderService {
+
+    private final OrderRepository orderRepository;
+    private final OrderItemRepository orderItemRepository;
+    private final ProductRepository productRepository;
+    private final UserRepository userRepository;
+    private final PointService pointService;
+    //private final OrderEventService orderEventService;
+
+    @Transactional
+    public OrderCreateResponse createOrder(Long userId, OrderCreateRequest request) {
+        // 1. 같은 상품 수량 합치기
+        Map<Long, Integer> quantityByProductId = mergeQuantities(request.items());
+
+        // 2. 상품 일괄 조회 + 존재 확인
+        Map<Long, Product> productById = findProducts(quantityByProductId.keySet());
+
+        // 3. 주문 항목 생성 (가격 스냅샷, 구매 가능 여부 검증)
+        List<OrderItem> items = quantityByProductId.entrySet().stream()
+                .map(entry -> OrderItem.of(productById.get(entry.getKey()), entry.getValue()))
+                .toList();
+
+        // 4. 주문 생성 + 저장 (주문 먼저 → 항목)
+        User user = userRepository.getReferenceById(userId);
+        Order order = orderRepository.save(Order.create(user, items));
+        orderItemRepository.saveAll(items);
+
+        // 5. 포인트 결제 (비관적 락, 잔액 부족 시 전체 롤백)
+        long remainingPoint = pointService.use(userId, order, order.getTotalAmount());
+
+        // 6. 주문 완료 이벤트를 Outbox에 기록 (같은 트랜잭션)
+        //orderEventService.recordOrderCompleted(order, items);
+
+        return new OrderCreateResponse(OrderResponse.of(order, items), remainingPoint);
+    }
+
+    public OrderResponse getOrder(Long userId, Long orderId) {
+        Order order = orderRepository.findByIdAndUserId(orderId, userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "주문을 찾을 수 없습니다."));
+        List<OrderItem> items = orderItemRepository.findAllWithProductByOrderId(orderId);
+        return OrderResponse.of(order, items);
+    }
+
+    public Page<OrderResponse> getMyOrders(Long userId, Pageable pageable) {
+        Page<Order> orders = orderRepository.findByUserIdOrderByCreatedAtDescIdDesc(userId, pageable);
+        if (orders.isEmpty()) {
+            return Page.empty(pageable);
+        }
+
+        List<Long> orderIds = orders.getContent().stream().map(Order::getId).toList();
+        Map<Long, List<OrderItem>> itemsByOrderId = orderItemRepository.findAllWithProductByOrderIdIn(orderIds)
+                .stream()
+                .collect(Collectors.groupingBy(item -> item.getOrder().getId()));
+
+        return orders.map(order -> OrderResponse.of(order, itemsByOrderId.getOrDefault(order.getId(), List.of())));
+    }
+
+    private Map<Long, Integer> mergeQuantities(List<OrderItemRequest> requests) {
+        Map<Long, Integer> merged = new LinkedHashMap<>();
+        for (OrderItemRequest request : requests) {
+            merged.merge(request.productId(), request.quantity(), Math::addExact);
+        }
+        return merged;
+    }
+
+    private Map<Long, Product> findProducts(Set<Long> productIds) {
+        List<Product> products = productRepository.findAllById(productIds);
+        if (products.size() != productIds.size()) {
+            throw new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "존재하지 않는 상품이 포함되어 있습니다.");
+        }
+        return products.stream().collect(Collectors.toMap(Product::getId, Function.identity()));
+    }
+}
