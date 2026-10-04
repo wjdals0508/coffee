@@ -28,9 +28,11 @@ public class CartItem extends BaseTimeEntity {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false, updatable = false)
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "product_id", nullable = false, updatable = false)
     private Product product;
 
     @Column(name = "quantity", nullable = false)
@@ -43,7 +45,6 @@ public class CartItem extends BaseTimeEntity {
         if (product == null) {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "상품은 필수입니다.");
         }
-        validateQuantity(quantity);
         product.validatePurchasable(quantity);
 
         this.user = user;
@@ -55,22 +56,27 @@ public class CartItem extends BaseTimeEntity {
         return new CartItem(user, product, quantity);
     }
 
-    private static void validateQuantity(int quantity) {
-        if (quantity < 1) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "장바구니 수량은 1 이상이어야 합니다.");
-        }
-    }
-
     public void addQuantity(int quantity) {
-        validateQuantity(quantity);
+        if (quantity < 1) {
+            throw new BusinessException(ErrorCode.INVALID_QUANTITY, "추가 수량은 1 이상이어야 합니다.");
+        }
         int totalQuantity = Math.addExact(this.quantity, quantity);
         this.product.validatePurchasable(totalQuantity);
         this.quantity = totalQuantity;
     }
 
     public void changeQuantity(int quantity) {
-        validateQuantity(quantity);
         this.product.validatePurchasable(quantity);
         this.quantity = quantity;
+    }
+
+    /** 지금 이 수량으로 주문할 수 있는가 (화면 표시용, 최종 판단은 주문 시점) */
+    public boolean isPurchasable() {
+        try {
+            product.validatePurchasable(quantity);
+            return true;
+        } catch (BusinessException e) {
+            return false;
+        }
     }
 }
