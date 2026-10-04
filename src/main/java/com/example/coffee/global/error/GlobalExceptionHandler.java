@@ -3,13 +3,19 @@ package com.example.coffee.global.error;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import com.example.coffee.global.response.ApiResponse;
+import org.springframework.context.MessageSourceResolvable;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -94,7 +100,7 @@ public class GlobalExceptionHandler {
         log.warn("404 Not Found: {}", request.getRequestURI());
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
-                .body(ApiResponse.error("COMMON_003", "요청한 리소스를 찾을 수 없습니다."));
+                .body(ApiResponse.error(ErrorCode.RESOURCE_NOT_FOUND));
     }
 
     /**
@@ -107,4 +113,51 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.error(ErrorCode.INTERNAL_SERVER_ERROR));
     }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleHttpMessageNotReadable(HttpMessageNotReadableException e) {
+        log.warn("HttpMessageNotReadableException: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ErrorCode.INVALID_INPUT_VALUE, "요청 본문의 형식이 올바르지 않습니다."));
+    }
+
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMissingRequestHeader(MissingRequestHeaderException e) {
+        log.warn("MissingRequestHeaderException: {}", e.getHeaderName());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ErrorCode.INVALID_INPUT_VALUE, "필수 헤더가 누락되었습니다: " + e.getHeaderName()));
+    }
+
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleHandlerMethodValidation(HandlerMethodValidationException e) {
+        String message = e.getAllErrors().stream()
+                .findFirst()
+                .map(MessageSourceResolvable::getDefaultMessage)
+                .orElse("입력 값이 올바르지 않습니다.");
+        log.warn("HandlerMethodValidationException: {}", message);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ErrorCode.INVALID_INPUT_VALUE, message));
+    }
+
+    @ExceptionHandler(PessimisticLockingFailureException.class)
+    public ResponseEntity<ApiResponse<Void>> handlePessimisticLockingFailure(PessimisticLockingFailureException e) {
+        log.warn("락 대기 시간 초과: {}", e.getMessage());
+        return ResponseEntity.status(ErrorCode.LOCK_TIMEOUT.getStatus())
+                .body(ApiResponse.error(ErrorCode.LOCK_TIMEOUT));
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDataIntegrityViolation(DataIntegrityViolationException e) {
+        log.warn("DataIntegrityViolationException: {}", e.getMostSpecificCause().getMessage());
+        return ResponseEntity.status(ErrorCode.DATA_CONFLICT.getStatus())
+                .body(ApiResponse.error(ErrorCode.DATA_CONFLICT));
+    }
+
+    /*
+    HttpMessageNotReadableException	JSON 문법이 깨진 요청, 숫자 자리에 문자
+    MissingRequestHeaderException	충전·주문에 Idempotency-Key 없음
+    HandlerMethodValidationException	헤더 길이 초과 등 파라미터 검증 실패
+    PessimisticLockingFailureException	포인트 락 대기 3초 초과
+    DataIntegrityViolationException	장바구니 동시 담기 등 유니크 제약 충돌
+    */
 }
