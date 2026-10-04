@@ -33,8 +33,8 @@ public class PointService {
         userPointRepository.save(UserPoint.create(user));
     }
 
-    /** 사용자 직접 충전 */
-    @Transactional
+    /** 충전 — 반드시 결제 트랜잭션 안에서 호출 */
+    @Transactional(propagation = Propagation.MANDATORY)
     public PointChargeResponse charge(Long userId, long amount) {
         UserPoint userPoint = getUserPointForUpdate(userId);
 

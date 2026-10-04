@@ -15,8 +15,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UserPoint extends BaseTimeEntity {
 
-    private static final long MAX_CHARGE_AMOUNT = 1000000;
-    private static final String MAX_CHARGE_AMOUNT_STRING = "1,000,000";
+    private static final long MAX_CHARGE_AMOUNT = 1_000_000L;
 
     @Id
     @Column(name = "user_id")
@@ -47,7 +46,7 @@ public class UserPoint extends BaseTimeEntity {
         validatePositive(amount);
         if (amount > MAX_CHARGE_AMOUNT) {
             throw new BusinessException(ErrorCode.INVALID_CHARGE_AMOUNT,
-                    "1회 최대 충전 금액은 " + MAX_CHARGE_AMOUNT_STRING + "P입니다.");
+                    "1회 최대 충전 금액은 " + String.format("%,d", MAX_CHARGE_AMOUNT) + "P입니다.");
         }
         increase(amount);
     }
