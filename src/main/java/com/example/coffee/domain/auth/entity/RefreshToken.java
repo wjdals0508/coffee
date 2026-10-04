@@ -3,10 +3,10 @@ package com.example.coffee.domain.auth.entity;
 import com.example.coffee.global.entity.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 
 @Entity
@@ -25,29 +25,37 @@ public class RefreshToken extends BaseTimeEntity {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(nullable = false, length = 500)
-    private String token;
+    @Column(name = "session_id", nullable = false, length = 36)
+    private String sessionId;
+
+    @Column(name = "token_hash", nullable = false, length = 64)
+    private String tokenHash;
+
+    @Column(name = "previous_token_hash", length = 64)
+    private String previousTokenHash;
+
+    @Column(name = "rotated_at")
+    private LocalDateTime rotatedAt;
 
     @Column(name = "expired_at", nullable = false)
     private LocalDateTime expiredAt;
 
-    @Builder
-    private  RefreshToken(Long userId, String token, LocalDateTime expiredAt) {
+    private RefreshToken(Long userId, String sessionId, String tokenHash, LocalDateTime expiredAt) {
         this.userId = userId;
-        this.token = token;
+        this.sessionId = sessionId;
+        this.tokenHash = tokenHash;
         this.expiredAt = expiredAt;
     }
 
-    public void update(String token, LocalDateTime expiredAt) {
-        this.token = token;
-        this.expiredAt = expiredAt;
+    public static RefreshToken create(Long userId, String sessionId, String tokenHash, LocalDateTime expiredAt) {
+        return new RefreshToken(userId, sessionId, tokenHash, expiredAt);
     }
 
-    public boolean isExpired() {
-        return this.expiredAt.isBefore(LocalDateTime.now());
-    }
-
-    public boolean matches(String token) {
-        return this.token.equals(token);
+    /** 직전 토큰이고, 교체된 지 유예 시간 이내인가 (동시 재발급 경쟁에서 진 요청 판별) */
+    public boolean isRecentlyRotatedFrom(String presentedHash, LocalDateTime now, Duration gracePeriod) {
+        return previousTokenHash != null
+                && previousTokenHash.equals(presentedHash)
+                && rotatedAt != null
+                && rotatedAt.isAfter(now.minus(gracePeriod));
     }
 }
