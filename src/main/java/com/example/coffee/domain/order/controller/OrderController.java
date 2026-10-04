@@ -1,6 +1,7 @@
 package com.example.coffee.domain.order.controller;
 
 import com.example.coffee.domain.order.dto.request.OrderCreateRequest;
+import com.example.coffee.domain.order.dto.response.OrderCancelResponse;
 import com.example.coffee.domain.order.dto.response.OrderCreateResponse;
 import com.example.coffee.domain.order.dto.response.OrderResponse;
 import com.example.coffee.domain.order.facade.OrderFacade;
@@ -53,5 +54,13 @@ public class OrderController {
             @PageableDefault(size = 20) Pageable pageable
     ) {
         return ResponseEntity.ok(ApiResponse.ok(PageResponse.from(orderService.getMyOrders(userId, pageable))));
+    }
+
+    @PostMapping("/{orderId}/cancel")
+    public ResponseEntity<ApiResponse<OrderCancelResponse>> cancelOrder(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long orderId
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(orderService.cancelOrder(userId, orderId)));
     }
 }

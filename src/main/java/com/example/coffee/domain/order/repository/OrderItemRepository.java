@@ -37,4 +37,6 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
         """)
     List<DailyProductSales> sumDailySales(@Param("from") LocalDateTime from,
                                           @Param("to") LocalDateTime to);
+
+    List<OrderItem> findAllByOrderId(Long orderId);
 }

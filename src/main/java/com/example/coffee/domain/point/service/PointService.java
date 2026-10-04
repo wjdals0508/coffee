@@ -71,6 +71,19 @@ public class PointService {
         return userPoint.getBalance();
     }
 
+    /** 주문 취소 환불 — 반드시 주문 취소 트랜잭션 안에서 호출 */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public long refund(Long userId, Order order, long amount) {
+        UserPoint userPoint = getUserPointForUpdate(userId);
+
+        userPoint.refund(amount);
+        pointHistoryRepository.save(
+                PointHistory.refund(userPoint.getUser(), order, amount, userPoint.getBalance())
+        );
+
+        return userPoint.getBalance();
+    }
+
     public PointBalanceResponse getBalance(Long userId) {
         UserPoint userPoint = userPointRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));

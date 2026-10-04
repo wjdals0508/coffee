@@ -48,6 +48,7 @@ public enum ErrorCode {
     INVALID_ORDER_STATUS(HttpStatus.BAD_REQUEST, "ORDER_002", "유효하지 않은 주문 상태 변경입니다."),
     ORDER_NOT_CANCELABLE(HttpStatus.CONFLICT, "ORDER_003", "취소할 수 없는 주문입니다."),
     INVALID_QUANTITY(HttpStatus.BAD_REQUEST, "ORDER_004", "주문 수량은 1 이상이어야 합니다."),
+    ORDER_ALREADY_CANCELED(HttpStatus.CONFLICT, "ORDER_005", "이미 취소된 주문입니다."),
 
     // Payment
     PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "PAYMENT_001", "결제 정보를 찾을 수 없습니다."),

@@ -17,7 +17,10 @@ import java.time.LocalDateTime;
 @Table(
         name = "point_history",
         indexes = @Index(name = "idx_point_history_user_created", columnList = "user_id, created_at"),
-        uniqueConstraints = @UniqueConstraint(name = "uk_point_history_order", columnNames = "order_id")
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_point_history_order_type",
+                columnNames = {"order_id", "type"}
+        )
 )
 @EntityListeners(AuditingEntityListener.class)
 @Getter
@@ -80,5 +83,12 @@ public class PointHistory {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "결제 내역에는 주문이 필수입니다.");
         }
         return new PointHistory(user, PointType.USE, amount, balanceAfter, order);
+    }
+
+    public static PointHistory refund(User user, Order order, long amount, long balanceAfter) {
+        if (order == null) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "환불 내역에는 주문이 필수입니다.");
+        }
+        return new PointHistory(user, PointType.REFUND, amount, balanceAfter, order);
     }
 }

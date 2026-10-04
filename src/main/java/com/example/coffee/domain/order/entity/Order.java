@@ -61,6 +61,9 @@ public class Order extends BaseTimeEntity {
     }
 
     public void cancel() {
+        if (this.status == OrderStatus.CANCELED) {
+            throw new BusinessException(ErrorCode.ORDER_ALREADY_CANCELED);
+        }
         if (!this.status.canTransitTo(OrderStatus.CANCELED)) {
             throw new BusinessException(ErrorCode.ORDER_NOT_CANCELABLE);
         }

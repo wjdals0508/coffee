@@ -76,4 +76,10 @@ public class UserPoint extends BaseTimeEntity {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "금액은 0보다 커야 합니다.");
         }
     }
+
+    // 주문 취소 환불
+    public void refund(long amount) {
+        validatePositive(amount);
+        increase(amount);
+    }
 }

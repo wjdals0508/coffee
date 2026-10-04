@@ -2,6 +2,7 @@ package com.example.coffee.domain.order.service;
 
 import com.example.coffee.domain.order.dto.request.OrderCreateRequest;
 import com.example.coffee.domain.order.dto.request.OrderItemRequest;
+import com.example.coffee.domain.order.dto.response.OrderCancelResponse;
 import com.example.coffee.domain.order.dto.response.OrderCreateResponse;
 import com.example.coffee.domain.order.dto.response.OrderResponse;
 import com.example.coffee.domain.order.entity.Order;
@@ -105,5 +106,42 @@ public class OrderService {
             merged.merge(request.productId(), request.quantity(), Math::addExact);
         }
         return merged;
+    }
+
+    @Transactional
+    public OrderCancelResponse cancelOrder(Long userId, Long orderId) {
+        // 1. 주문 락 + 소유자 확인
+        Order order = orderRepository.findByIdAndUserIdForUpdate(orderId, userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+
+        // 2. 상태 변경 (취소 불가면 여기서 종료 → 상품·포인트 락을 잡지 않음)
+        order.cancel();
+
+        // 3. 주문 항목 조회 + 재고 복구 (상품 락, id 오름차순)
+        List<OrderItem> items = orderItemRepository.findAllByOrderId(orderId);
+        restoreStocks(items);
+
+        // 4. 포인트 환불 (포인트 락)
+        long refundedAmount = order.getTotalAmount();
+        long remainingPoint = pointService.refund(userId, order, refundedAmount);
+
+        // 5. 주문 취소 이벤트를 Outbox에 기록 (Outbox 구현 시 추가)
+        //orderEventService.recordOrderCanceled(order, items);
+
+        return new OrderCancelResponse(OrderResponse.of(order, items), refundedAmount, remainingPoint);
+    }
+
+    private void restoreStocks(List<OrderItem> items) {
+        Set<Long> productIds = items.stream()
+                .map(item -> item.getProduct().getId())// id만 꺼낼때는 쿼리를 보내지 않음
+                .collect(Collectors.toSet());
+
+        Map<Long, Product> productById = productRepository.findAllByIdInForUpdate(productIds).stream()
+                .collect(Collectors.toMap(Product::getId, Function.identity()));
+
+        for (OrderItem item : items) {
+            Product product = productById.get(item.getProduct().getId());
+            product.restoreStock(item.getQuantity());
+        }
     }
 }
