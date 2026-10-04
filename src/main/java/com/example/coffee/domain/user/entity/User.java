@@ -28,13 +28,13 @@ public class User extends BaseTimeEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private Grade grade;
+    private Role role;
 
     @Builder
-    private User(String email, String password, String name, String phone) {
+    private User(String email, String password, String name) {
         this.email = email;
         this.password = password;
         this.name = name;
-        this.grade = Grade.NORMAL;
+        this.role = Role.USER;
     }
 }
