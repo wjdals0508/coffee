@@ -9,12 +9,16 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
 @Table(
         name = "orders",
-        indexes = @Index(name = "idx_orders_created_at", columnList = "created_at")
+        indexes = {
+                @Index(name = "idx_orders_created_at", columnList = "created_at"),
+                @Index(name = "idx_orders_user_created", columnList = "user_id, created_at")
+        }
 )
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -31,6 +35,13 @@ public class Order extends BaseTimeEntity {
     @Column(name = "total_amount", nullable = false, updatable = false)
     private long totalAmount;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    private OrderStatus status;
+
+    @Column(name = "canceled_at")
+    private LocalDateTime canceledAt;
+
     private Order(User user, List<OrderItem> items) {
         if (user == null) {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "회원은 필수입니다.");
@@ -40,12 +51,36 @@ public class Order extends BaseTimeEntity {
         }
         this.user = user;
         this.totalAmount = calculateTotalAmount(items);
+        this.status = OrderStatus.ORDERED;
     }
 
     public static Order create(User user, List<OrderItem> items) {
         Order order = new Order(user, items);
         items.forEach(item -> item.assignOrder(order));
         return order;
+    }
+
+    public void cancel() {
+        if (!this.status.canTransitTo(OrderStatus.CANCELED)) {
+            throw new BusinessException(ErrorCode.ORDER_NOT_CANCELABLE);
+        }
+        this.status = OrderStatus.CANCELED;
+        this.canceledAt = LocalDateTime.now();
+    }
+
+    public void startPreparing() {
+        changeStatus(OrderStatus.PREPARING);
+    }
+
+    public void complete() {
+        changeStatus(OrderStatus.COMPLETED);
+    }
+
+    private void changeStatus(OrderStatus target) {
+        if (!this.status.canTransitTo(target)) {
+            throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS);
+        }
+        this.status = target;
     }
 
     private static long calculateTotalAmount(List<OrderItem> items) {

@@ -26,14 +26,15 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
     List<OrderItem> findAllWithProductByOrderIdIn(@Param("orderIds") List<Long> orderIds);
 
     @Query("""
-            select new com.example.coffee.domain.order.repository.dto.DailyProductSales(
-                cast(o.createdAt as LocalDate), i.product.id, sum(i.quantity))
-            from OrderItem i
-            join i.order o
-            where o.createdAt >= :from
-              and o.createdAt < :to
-            group by cast(o.createdAt as LocalDate), i.product.id
-            """)
+        select new com.example.coffee.domain.order.repository.dto.DailyProductSales(
+            cast(o.createdAt as LocalDate), i.product.id, sum(i.quantity))
+        from OrderItem i
+        join i.order o
+        where o.createdAt >= :from
+          and o.createdAt < :to
+          and o.status <> com.example.coffee.domain.order.entity.OrderStatus.CANCELED
+        group by cast(o.createdAt as LocalDate), i.product.id
+        """)
     List<DailyProductSales> sumDailySales(@Param("from") LocalDateTime from,
                                           @Param("to") LocalDateTime to);
 }

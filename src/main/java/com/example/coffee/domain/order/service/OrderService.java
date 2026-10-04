@@ -45,26 +45,37 @@ public class OrderService {
         // 1. 같은 상품 수량 합치기
         Map<Long, Integer> quantityByProductId = mergeQuantities(request.items());
 
-        // 2. 상품 일괄 조회 + 존재 확인
-        Map<Long, Product> productById = findProducts(quantityByProductId.keySet());
+        // 2. 상품 락 + 존재 확인 (id 오름차순으로 락 획득)
+        Map<Long, Product> productById = findProductsForUpdate(quantityByProductId.keySet());
 
         // 3. 주문 항목 생성 (가격 스냅샷, 구매 가능 여부 검증)
         List<OrderItem> items = quantityByProductId.entrySet().stream()
                 .map(entry -> OrderItem.of(productById.get(entry.getKey()), entry.getValue()))
                 .toList();
 
-        // 4. 주문 생성 + 저장 (주문 먼저 → 항목)
+        // 4. 재고 차감 (락을 잡은 상태, 커밋 시 변경 감지로 UPDATE)
+        items.forEach(item -> item.getProduct().decreaseStock(item.getQuantity()));
+
+        // 5. 주문 생성 + 저장
         User user = userRepository.getReferenceById(userId);
         Order order = orderRepository.save(Order.create(user, items));
         orderItemRepository.saveAll(items);
 
-        // 5. 포인트 결제 (비관적 락, 잔액 부족 시 전체 롤백)
+        // 6. 포인트 결제 (잔액 부족 시 재고 차감까지 전체 롤백)
         long remainingPoint = pointService.use(userId, order, order.getTotalAmount());
 
-        // 6. 주문 완료 이벤트를 Outbox에 기록 (같은 트랜잭션)
+        // 7. 주문 완료 이벤트를 Outbox에 기록
         //orderEventService.recordOrderCompleted(order, items);
 
         return new OrderCreateResponse(OrderResponse.of(order, items), remainingPoint);
+    }
+
+    private Map<Long, Product> findProductsForUpdate(Set<Long> productIds) {
+        List<Product> products = productRepository.findAllByIdInForUpdate(productIds);
+        if (products.size() != productIds.size()) {
+            throw new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "존재하지 않는 상품이 포함되어 있습니다.");
+        }
+        return products.stream().collect(Collectors.toMap(Product::getId, Function.identity()));
     }
 
     public OrderResponse getOrder(Long userId, Long orderId) {
@@ -77,7 +88,7 @@ public class OrderService {
     public Page<OrderResponse> getMyOrders(Long userId, Pageable pageable) {
         Page<Order> orders = orderRepository.findByUserIdOrderByCreatedAtDescIdDesc(userId, pageable);
         if (orders.isEmpty()) {
-            return Page.empty(pageable);
+            return orders.map(order -> OrderResponse.of(order, List.of()));
         }
 
         List<Long> orderIds = orders.getContent().stream().map(Order::getId).toList();
@@ -94,13 +105,5 @@ public class OrderService {
             merged.merge(request.productId(), request.quantity(), Math::addExact);
         }
         return merged;
-    }
-
-    private Map<Long, Product> findProducts(Set<Long> productIds) {
-        List<Product> products = productRepository.findAllById(productIds);
-        if (products.size() != productIds.size()) {
-            throw new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "존재하지 않는 상품이 포함되어 있습니다.");
-        }
-        return products.stream().collect(Collectors.toMap(Product::getId, Function.identity()));
     }
 }

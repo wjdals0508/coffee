@@ -39,14 +39,15 @@ public class OrderItem {
         if (product == null) {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "상품은 필수입니다.");
         }
-        if (quantity < 1) {
-            throw new BusinessException(ErrorCode.INVALID_QUANTITY);
-        }
         product.validatePurchasable(quantity);
 
         this.product = product;
         this.unitPrice = product.getPrice();
         this.quantity = quantity;
+    }
+
+    public long getAmount() {
+        return Math.multiplyExact(unitPrice, quantity);
     }
 
     public static OrderItem of(Product product, int quantity) {
@@ -55,9 +56,5 @@ public class OrderItem {
 
     void assignOrder(Order order) {
         this.order = order;
-    }
-
-    public long getAmount() {
-        return Math.multiplyExact((long) unitPrice, quantity);
     }
 }

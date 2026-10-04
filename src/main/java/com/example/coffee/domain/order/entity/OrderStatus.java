@@ -1,42 +1,25 @@
 package com.example.coffee.domain.order.entity;
 
 public enum OrderStatus {
-    PENDING_PAYMENT {
+
+    ORDERED {           // 주문 + 포인트 결제 완료
         @Override
         public boolean canTransitTo(OrderStatus target) {
-            // 결제 성공 → COMPLETED / 결제 실패·회원 취소 → CANCELED
-            return target == PAID || target == CANCELED;
+            return target == PREPARING || target == CANCELED;
         }
     },
-
-    PAID {
+    PREPARING {         // 제조 중 → 이때부터 취소 불가
         @Override
         public boolean canTransitTo(OrderStatus target) {
-            return target == PREPARING_DELIVERY || target == CANCELED;
+            return target == COMPLETED;
         }
     },
-
-    PREPARING_DELIVERY {
+    COMPLETED {         // 픽업 완료
         @Override
         public boolean canTransitTo(OrderStatus target) {
-            return target == SHIPPING || target == CANCELED;
+            return false;
         }
     },
-
-    SHIPPING {
-        @Override
-        public boolean canTransitTo(OrderStatus target) {
-            return target == DELIVERED || target == CANCELED;
-        }
-    },
-
-    DELIVERED {
-        @Override
-        public boolean canTransitTo(OrderStatus target) {
-            return target == CANCELED;
-        }
-    },
-
     CANCELED {
         @Override
         public boolean canTransitTo(OrderStatus target) {

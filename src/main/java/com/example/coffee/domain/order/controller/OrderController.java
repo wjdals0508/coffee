@@ -6,6 +6,7 @@ import com.example.coffee.domain.order.dto.response.OrderResponse;
 import com.example.coffee.domain.order.facade.OrderFacade;
 import com.example.coffee.domain.order.service.OrderService;
 import com.example.coffee.global.response.ApiResponse;
+import com.example.coffee.global.response.PageResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -30,27 +31,27 @@ public class OrderController {
 
     @PostMapping
     public ResponseEntity<ApiResponse<OrderCreateResponse>> createOrder(
-            @AuthenticationPrincipal Long memberId,
+            @AuthenticationPrincipal Long userId,
             @RequestHeader(IDEMPOTENCY_KEY_HEADER) @NotBlank @Size(max = 64) String idempotencyKey,
             @Valid @RequestBody OrderCreateRequest request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok(orderFacade.createOrder(idempotencyKey, memberId, request)));
+                .body(ApiResponse.ok(orderFacade.createOrder(idempotencyKey, userId, request)));
     }
 
     @GetMapping("/{orderId}")
     public ResponseEntity<ApiResponse<OrderResponse>> getOrder(
-            @AuthenticationPrincipal Long memberId,
+            @AuthenticationPrincipal Long userId,
             @PathVariable Long orderId
     ) {
-        return ResponseEntity.ok(ApiResponse.ok(orderService.getOrder(memberId, orderId)));
+        return ResponseEntity.ok(ApiResponse.ok(orderService.getOrder(userId, orderId)));
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<PagedModel<OrderResponse>>> getMyOrders(
-            @AuthenticationPrincipal Long memberId,
+    public ResponseEntity<ApiResponse<PageResponse<OrderResponse>>> getMyOrders(
+            @AuthenticationPrincipal Long userId,
             @PageableDefault(size = 20) Pageable pageable
     ) {
-        return ResponseEntity.ok(ApiResponse.ok(new PagedModel<>(orderService.getMyOrders(memberId, pageable))));
+        return ResponseEntity.ok(ApiResponse.ok(PageResponse.from(orderService.getMyOrders(userId, pageable))));
     }
 }

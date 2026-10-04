@@ -12,6 +12,9 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Product {
+
+    private static final int MAX_QUANTITY_PER_ITEM = 99;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
@@ -34,45 +37,45 @@ public class Product {
     private int stock;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
+    @Column(name = "status", nullable = false, length = 20)
     private ProductStatus status;
 
-    public void decreaseStock(int quantity) {
-        if (quantity <= 0) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "차감 수량은 1 이상이어야 합니다.");
-        }
-
-        if (this.status != ProductStatus.ON_SALE) {
-            throw new IllegalStateException("판매 중인 상품만 주문할 수 있습니다.");
-        }
-
-        if (this.stock < quantity) {
-            throw new IllegalStateException("상품 재고가 부족합니다.");
-        }
-
-        this.stock -= quantity;
-
-        if (this.stock == 0) {this.status = ProductStatus.SOLD_OUT;}
-    }
-
-    public void restoreStock(int quantity) {
-        if (quantity <= 0) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "복구 수량은 1 이상이어야 합니다.");
-        }
-
-        this.stock = Math.addExact(this.stock, quantity);
-
-        if (this.status == ProductStatus.SOLD_OUT) {
-            this.status = ProductStatus.ON_SALE;
-        }
-    }
-
+    /** 구매 가능 여부 검증 (장바구니 담기, 주문 항목 생성 시) */
     public void validatePurchasable(int quantity) {
         if (this.status != ProductStatus.ON_SALE) {
             throw new BusinessException(ErrorCode.PRODUCT_NOT_ON_SALE);
         }
+        if (quantity < 1 || quantity > MAX_QUANTITY_PER_ITEM) {
+            throw new BusinessException(ErrorCode.INVALID_QUANTITY,
+                    "상품당 수량은 1개 이상 " + MAX_QUANTITY_PER_ITEM + "개 이하여야 합니다.");
+        }
         if (this.stock < quantity) {
-            throw new BusinessException(ErrorCode.INSUFFICIENT_STOCK);
+            throw new BusinessException(ErrorCode.INSUFFICIENT_STOCK,
+                    "'" + this.name + "'의 재고가 부족합니다. (남은 수량: " + this.stock + ")");
+        }
+    }
+
+    /** 재고 차감 — 반드시 락을 잡은 상태에서 호출 */
+    public void decreaseStock(int quantity) {
+        validatePurchasable(quantity);
+
+        this.stock -= quantity;
+        if (this.stock == 0) {
+            this.status = ProductStatus.SOLD_OUT;
+        }
+    }
+
+    /** 재고 복구 — 주문 취소 시 */
+    public void restoreStock(int quantity) {
+        if (quantity < 1) {
+            throw new BusinessException(ErrorCode.INVALID_QUANTITY, "복구 수량은 1 이상이어야 합니다.");
+        }
+
+        boolean soldOutByStock = this.status == ProductStatus.SOLD_OUT && this.stock == 0;
+
+        this.stock = Math.addExact(this.stock, quantity);
+        if (soldOutByStock) {
+            this.status = ProductStatus.ON_SALE;
         }
     }
 }
