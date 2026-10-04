@@ -1,34 +1,44 @@
 package com.example.coffee.global.util;
 
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
+
 @Component
 public class CookieUtil {
 
-    private static final String REFRESH_TOKEN_COOKIE_NAME = "refreshToken";
+    public static final String REFRESH_TOKEN_COOKIE_NAME = "refreshToken";
+    private static final String REFRESH_TOKEN_PATH = "/api/auth";
+
+    private final boolean secure;
+    private final String sameSite;
+
+    public CookieUtil(@Value("${auth.cookie.secure}") boolean secure,
+                      @Value("${auth.cookie.same-site}") String sameSite) {
+        this.secure = secure;
+        this.sameSite = sameSite;
+    }
 
     public void addRefreshTokenCookie(HttpServletResponse response, String refreshToken, long maxAgeMillis) {
-        ResponseCookie cookie = ResponseCookie.from(REFRESH_TOKEN_COOKIE_NAME, refreshToken)
-                .httpOnly(true)
-                .secure(false) // 배포 시 true로 변경 (HTTPS 환경에서만 동작)
-                .sameSite("Lax") // 프론트/백엔드 도메인이 다르면 "None"+secure(true) 필요
-                .path("/")
-                .maxAge(maxAgeMillis / 1000)
-                .build();
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        response.addHeader(HttpHeaders.SET_COOKIE,
+                buildCookie(refreshToken, Duration.ofMillis(maxAgeMillis)).toString());
     }
 
     public void deleteRefreshTokenCookie(HttpServletResponse response) {
-        ResponseCookie cookie = ResponseCookie.from(REFRESH_TOKEN_COOKIE_NAME, "")
+        response.addHeader(HttpHeaders.SET_COOKIE, buildCookie("", Duration.ZERO).toString());
+    }
+
+    private ResponseCookie buildCookie(String value, Duration maxAge) {
+        return ResponseCookie.from(REFRESH_TOKEN_COOKIE_NAME, value)
                 .httpOnly(true)
-                .secure(false)
-                .sameSite("Lax")
-                .path("/")
-                .maxAge(0)
+                .secure(secure)
+                .sameSite(sameSite)
+                .path(REFRESH_TOKEN_PATH)
+                .maxAge(maxAge)
                 .build();
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 }
