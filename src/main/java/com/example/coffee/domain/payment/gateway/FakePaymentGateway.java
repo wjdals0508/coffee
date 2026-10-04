@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 public class FakePaymentGateway implements PaymentGateway {
 
     @Override
-    public void approve(String paymentId, long amount) {
-        log.info("[FAKE PAYMENT] 승인 처리. paymentId={}, amount={}", paymentId, amount);
+    public void approve(String paymentKey, long amount) {
+        log.info("[FAKE PAYMENT] 검증 없이 승인. paymentKey={}, amount={}", paymentKey, amount);
     }
 }

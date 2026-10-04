@@ -1,6 +1,5 @@
 package com.example.coffee.domain.payment.dto.response;
 
-import com.example.coffee.domain.payment.entity.FailReason;
 import com.example.coffee.domain.payment.entity.Payment;
 import com.example.coffee.domain.payment.entity.PaymentStatus;
 
@@ -10,18 +9,14 @@ public record PaymentResponse(
         Long paymentId,
         long amount,
         PaymentStatus status,
-        FailReason failReason,
-        LocalDateTime paidAt,
-        LocalDateTime createdAt
+        LocalDateTime paidAt
 ) {
     public static PaymentResponse from(Payment payment) {
         return new PaymentResponse(
                 payment.getId(),
                 payment.getAmount(),
                 payment.getStatus(),
-                payment.getFailReason(),
-                payment.getPaidAt(),
-                payment.getCreatedAt()
+                payment.getPaidAt()
         );
     }
 }
