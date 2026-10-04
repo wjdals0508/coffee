@@ -26,3 +26,16 @@ spring:
 
 payment:
   gateway: fake
+
+
+# JWT 설정
+jwt:
+  secret: "c3BhcnRhLXBheW1lbnQtand0LXNlY3JldC1rZXktZm9yLWJvb3RjYW1wLTIwMjYtdmVyeS1sb25nLXNlY3JldA=="  # Base64 encoded
+  access-expiration: 1800000  # 1시간 (ms)
+  refresh-expiration: 1209600000
+
+
+auth:
+  cookie:
+    secure: false     # 운영: true
+    same-site: Lax
