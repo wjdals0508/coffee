@@ -15,7 +15,7 @@ public class RedisConfig {
     @Bean
     public GenericJacksonJsonRedisSerializer redisValueSerializer() {
         BasicPolymorphicTypeValidator typeValidator = BasicPolymorphicTypeValidator.builder()
-                .allowIfSubType("org.example.murderhelp")
+                .allowIfSubType("com.example.coffee")
                 .allowIfSubType("java.util")
                 .allowIfSubType("java.time")
                 .build();
