@@ -1,41 +1,29 @@
 spring:
   application:
     name: coffee
-  profiles:
-    active: local
 
   datasource:
-    url: jdbc:mysql://localhost:3306/coffee_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-    username: root
-    password: a12345
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       connection-init-sql: SET SESSION innodb_lock_wait_timeout = 3
 
   jpa:
     open-in-view: false
-    hibernate:
-      ddl-auto: create
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-        dialect: org.hibernate.dialect.MySQLDialect
-    defer-datasource-initialization: true
 
+  kafka:
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      properties:
+        enable.idempotence: true
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
 
-payment:
-  gateway: fake
-
-
-# JWT 설정
 jwt:
-  secret: "c3BhcnRhLXBheW1lbnQtand0LXNlY3JldC1rZXktZm9yLWJvb3RjYW1wLTIwMjYtdmVyeS1sb25nLXNlY3JldA=="  # Base64 encoded
-  access-expiration: 1800000  # 1시간 (ms)
-  refresh-expiration: 1209600000
-
-
-auth:
-  cookie:
-    secure: false     # 운영: true
-    same-site: Lax
+  secret: ${JWT_SECRET}
+  access-expiration: 1800000      # 30분 (ms)
+  refresh-expiration: 1209600000  # 14일 (ms)
