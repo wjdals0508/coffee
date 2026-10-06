@@ -7,6 +7,7 @@ import com.example.coffee.domain.order.dto.response.OrderCreateResponse;
 import com.example.coffee.domain.order.dto.response.OrderResponse;
 import com.example.coffee.domain.order.entity.Order;
 import com.example.coffee.domain.order.entity.OrderItem;
+import com.example.coffee.domain.order.event.OrderEventService;
 import com.example.coffee.domain.order.repository.OrderItemRepository;
 import com.example.coffee.domain.order.repository.OrderRepository;
 import com.example.coffee.domain.point.service.PointService;
@@ -39,7 +40,7 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final PointService pointService;
-    //private final OrderEventService orderEventService;
+    private final OrderEventService orderEventService;
 
     @Transactional
     public OrderCreateResponse createOrder(Long userId, OrderCreateRequest request) {
@@ -66,7 +67,7 @@ public class OrderService {
         long remainingPoint = pointService.use(userId, order, order.getTotalAmount());
 
         // 7. 주문 완료 이벤트를 Outbox에 기록
-        //orderEventService.recordOrderCompleted(order, items);
+        orderEventService.recordOrderCompleted(order, items);
 
         return new OrderCreateResponse(OrderResponse.of(order, items), remainingPoint);
     }
@@ -126,7 +127,7 @@ public class OrderService {
         long remainingPoint = pointService.refund(userId, order, refundedAmount);
 
         // 5. 주문 취소 이벤트를 Outbox에 기록 (Outbox 구현 시 추가)
-        //orderEventService.recordOrderCanceled(order, items);
+        orderEventService.recordOrderCanceled(order, items);
 
         return new OrderCancelResponse(OrderResponse.of(order, items), refundedAmount, remainingPoint);
     }
