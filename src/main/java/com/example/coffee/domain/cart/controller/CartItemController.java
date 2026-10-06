@@ -23,43 +23,43 @@ public class CartItemController {
 
     @PostMapping
     public ResponseEntity<ApiResponse<CartItemResponse>> addItem(
-            @AuthenticationPrincipal Long memberId,
+            @AuthenticationPrincipal Long userId,
             @Valid @RequestBody CartItemAddRequest request
     ) {
-        return ResponseEntity.ok(ApiResponse.ok(cartItemService.addItem(memberId, request)));
+        return ResponseEntity.ok(ApiResponse.ok(cartItemService.addItem(userId, request)));
     }
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<CartItemResponse>>> getItems(
-            @AuthenticationPrincipal Long memberId
+            @AuthenticationPrincipal Long userId
     ) {
-        return ResponseEntity.ok(ApiResponse.ok(cartItemService.getItems(memberId)));
+        return ResponseEntity.ok(ApiResponse.ok(cartItemService.getItems(userId)));
     }
 
     @PatchMapping("/{cartItemId}")
     public ResponseEntity<ApiResponse<CartItemResponse>> updateItemQuantity(
-            @AuthenticationPrincipal Long memberId,
+            @AuthenticationPrincipal Long userId,
             @PathVariable Long cartItemId,
             @Valid @RequestBody CartItemUpdateRequest request
     ) {
-        return ResponseEntity.ok(ApiResponse.ok(cartItemService.updateItemQuantity(memberId, cartItemId, request)));
+        return ResponseEntity.ok(ApiResponse.ok(cartItemService.updateItemQuantity(userId, cartItemId, request)));
     }
 
     @DeleteMapping("/{cartItemId}")
     public ResponseEntity<ApiResponse<Void>> deleteItem(
-            @AuthenticationPrincipal Long memberId,
+            @AuthenticationPrincipal Long userId,
             @PathVariable Long cartItemId
     ) {
-        cartItemService.deleteItem(memberId, cartItemId);
+        cartItemService.deleteItem(userId, cartItemId);
         return ResponseEntity.ok(ApiResponse.ok());
     }
 
     @DeleteMapping
     public ResponseEntity<ApiResponse<Void>> deleteItems(
-            @AuthenticationPrincipal Long memberId,
+            @AuthenticationPrincipal Long userId,
             @Valid @RequestBody CartItemsDeleteRequest request
     ) {
-        cartItemService.deleteItems(memberId, request.cartItemIds());
+        cartItemService.deleteItems(userId, request.cartItemIds());
         return ResponseEntity.ok(ApiResponse.ok());
     }
 
