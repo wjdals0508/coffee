@@ -25,19 +25,15 @@ public class ProductController {
     @GetMapping("")
     public ResponseEntity<ApiResponse<PageResponse<ProductResponse>>> getProducts(
             Authentication authentication,
-            @RequestParam(required = false) String category,
+            @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) String sort,
             Pageable pageable
     ) {
-
-        ProductSort productSort = ProductSort.fromValue(sort);
-
         PageResponse<ProductResponse> response = productService.getProducts(
-                category,
-                productSort,
+                categoryId,
+                ProductSort.fromValue(sort),
                 pageable
         );
-
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 

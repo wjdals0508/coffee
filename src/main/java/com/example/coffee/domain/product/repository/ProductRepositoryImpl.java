@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.support.PageableExecutionUtils;
+import com.querydsl.core.types.dsl.BooleanExpression;
 
 import java.util.List;
 
@@ -24,7 +25,7 @@ public class ProductRepositoryImpl implements ProductRepositoryCustom {
 
     @Override
     public Page<Product> findProducts(
-            String categoryName,
+            Long categoryId,
             ProductStatus excludedStatus,
             Pageable pageable
     ) {
@@ -32,7 +33,7 @@ public class ProductRepositoryImpl implements ProductRepositoryCustom {
                 .selectFrom(product)
                 .join(product.category, category).fetchJoin()
                 .where(
-                        category.name.eq(categoryName),
+                        categoryIdEq(categoryId),
                         product.status.ne(excludedStatus)
                 )
                 .orderBy(toOrderSpecifiers(pageable.getSort()))
@@ -43,9 +44,8 @@ public class ProductRepositoryImpl implements ProductRepositoryCustom {
         JPAQuery<Long> countQuery = queryFactory
                 .select(product.count())
                 .from(product)
-                .join(product.category, category)
                 .where(
-                        category.name.eq(categoryName),
+                        categoryIdEq(categoryId),
                         product.status.ne(excludedStatus)
                 );
 
@@ -57,6 +57,10 @@ public class ProductRepositoryImpl implements ProductRepositoryCustom {
                     return count == null ? 0L : count;
                 }
         );
+    }
+
+    private BooleanExpression categoryIdEq(Long categoryId) {
+        return categoryId == null ? null : product.category.id.eq(categoryId);
     }
 
     @Override

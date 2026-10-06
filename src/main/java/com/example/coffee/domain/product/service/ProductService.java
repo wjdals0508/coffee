@@ -22,11 +22,10 @@ public class ProductService {
 
     @Transactional(readOnly = true)
     public PageResponse<ProductResponse> getProducts(
-            String category,
+            Long categoryId,
             ProductSort sort,
             Pageable pageable
     ) {
-        String normalizedCategory = normalizeRequiredCategory(category);
         Pageable sortedPageable = PageRequest.of(
                 pageable.getPageNumber(),
                 pageable.getPageSize(),
@@ -34,11 +33,7 @@ public class ProductService {
         );
 
         return PageResponse.from(
-                productRepository.findProducts(
-                                normalizedCategory,
-                                ProductStatus.DISCONTINUED,
-                                sortedPageable
-                        )
+                productRepository.findProducts(categoryId, ProductStatus.DISCONTINUED, sortedPageable)
                         .map(ProductResponse::from)
         );
     }
