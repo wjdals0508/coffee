@@ -96,6 +96,33 @@ public class PopularMenuRedisRepository {
         return quantityByProductId;
     }
 
+    /**
+     * KEYS[1] = popular:products:{yyyyMMdd}
+     * ARGV[1] = TTL(초), 이후 (productId, quantity) 쌍 반복
+     */
+    private static final RedisScript<Long> REPLACE_SCRIPT = new DefaultRedisScript<>("""
+        redis.call('DEL', KEYS[1])
+        for i = 2, #ARGV, 2 do
+          redis.call('ZADD', KEYS[1], ARGV[i + 1], ARGV[i])
+        end
+        if #ARGV > 1 then
+          redis.call('EXPIRE', KEYS[1], ARGV[1])
+        end
+        return 1
+        """, Long.class);
+
+    /** 하루치 랭킹을 주어진 값으로 통째로 교체한다 (재구축용) */
+    public void replaceDaily(LocalDate orderDate, Map<Long, Long> quantityByProductId) {
+        List<String> args = new ArrayList<>();
+        args.add(String.valueOf(KEY_TTL.toSeconds()));
+        quantityByProductId.forEach((productId, quantity) -> {
+            args.add(String.valueOf(productId));
+            args.add(String.valueOf(quantity));
+        });
+
+        redisTemplate.execute(REPLACE_SCRIPT, List.of(rankingKey(orderDate)), args.toArray());
+    }
+
     public static String rankingKey(LocalDate date) {
         return RANKING_KEY_PREFIX + date.format(DATE_FORMAT);
     }
