@@ -40,6 +40,7 @@ dependencies {
     // kafka
     implementation 'org.springframework.boot:spring-boot-starter-kafka'
     testImplementation 'org.springframework.kafka:spring-kafka-test'
+    testImplementation 'org.awaitility:awaitility'
 
     // WebSocket
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
